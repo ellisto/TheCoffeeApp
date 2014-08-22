@@ -18,5 +18,13 @@
         android:id="@+id/nextStepTextView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content" />
+    
+    <Button
+        android:id="@+id/stopAlarmButton"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:text="@string/stop_alarm"
+    android:onClick="stopAlarm"
+    android:visibility="invisible"/>
 
 </LinearLayout>
