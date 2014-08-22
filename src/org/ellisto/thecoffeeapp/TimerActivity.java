@@ -2,26 +2,55 @@ package org.ellisto.thecoffeeapp;
 
 import java.io.IOException;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.media.MediaPlayer;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.CountDownTimer;
 import android.support.v7.app.ActionBarActivity;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
 public class TimerActivity extends ActionBarActivity {
+	private static final String NEXT_STEP = "org.ellisto.thecoffeeapp.NEXT_STEP_TEXT";
+	private static final String ALARM_RINGING = "org.ellisto.thecoffeeapp.ALARM_RINGING";
 	TextView timerTextView, nextStepTextView;
 	Button stopAlarmButton;
-	int targetMin = 4;
-	int targetSec = 0;
-	long targetMs = 0;
-	boolean stirAlerted = false;
-	long stirTimeMs = 1000;// 60000;
+	boolean alarmRinging = false;
 
 	MediaPlayer alarmMp = null;
+
+	private BroadcastReceiver receiver = new BroadcastReceiver() {
+
+		@Override
+		public void onReceive(Context context, Intent intent) {
+			Bundle bundle = intent.getExtras();
+			if (bundle != null) {
+				long remainingMs = bundle
+						.getLong(TimerService.MILLIS_REMAINING);
+				if (remainingMs >= 0) {
+					int seconds = (int) (remainingMs / 1000);
+					int minutes = seconds / 60;
+					seconds = seconds % 60;
+					timerTextView.setText(String.format("%d:%02d", minutes,
+							seconds));
+					if (remainingMs == 0) {
+						// TODO: pull this from a resource
+						nextStepTextView.setText("Press and enjoy!");
+						playAlarmSound();
+						// TODO: vibrate
+					}
+				}
+				if (bundle.getBoolean(TimerService.STIR_ALERT)) {
+					alertStir();
+				}
+			}
+		}
+	};
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -30,34 +59,36 @@ public class TimerActivity extends ActionBarActivity {
 
 		timerTextView = (TextView) findViewById(R.id.timerTextView);
 		nextStepTextView = (TextView) findViewById(R.id.nextStepTextView);
+
 		stopAlarmButton = (Button) findViewById(R.id.stopAlarmButton);
 
-		targetMs = targetMin * 60000 + targetSec * 1000;
+		if (savedInstanceState != null) {
+			nextStepTextView.setText(savedInstanceState.getString(NEXT_STEP));
+			alarmRinging = savedInstanceState.getBoolean(ALARM_RINGING);
+		}
 
-		new CountDownTimer(targetMs, 1000) {
+		if (alarmRinging) {
+			stopAlarmButton.setVisibility(View.VISIBLE);
+		}
+	}
 
-			public void onTick(long remainingMs) {
-				int seconds = (int) (remainingMs / 1000);
-				int minutes = seconds / 60;
-				seconds = seconds % 60;
+	@Override
+	protected void onResume() {
+		super.onResume();
+		registerReceiver(receiver, new IntentFilter(TimerService.NOTIFICATION));
+	}
 
-				timerTextView.setText(String
-						.format("%d:%02d", minutes, seconds));
+	@Override
+	protected void onPause() {
+		super.onPause();
+		unregisterReceiver(receiver);
+	}
 
-				if (!stirAlerted && remainingMs <= targetMs - stirTimeMs) {
-					stirAlerted = true;
-					alertStir();
-				}
-			}
-
-			public void onFinish() {
-				timerTextView.setText("0:00");
-				// TODO: pull this from a resource
-				nextStepTextView.setText("Press and enjoy!");
-				playAlarmSound();
-				// TODO: vibrate
-			}
-		}.start();
+	@Override
+	public void onSaveInstanceState(Bundle savedInstanceState) {
+		savedInstanceState.putString(NEXT_STEP, nextStepTextView.getText()
+				.toString());
+		savedInstanceState.putBoolean(ALARM_RINGING, alarmRinging);
 	}
 
 	protected void alertStir() {
@@ -83,6 +114,7 @@ public class TimerActivity extends ActionBarActivity {
 		alarmMp.setLooping(true);
 		alarmMp.start();
 		stopAlarmButton.setVisibility(View.VISIBLE);
+		alarmRinging = true;
 	}
 
 	public void stopAlarm(View view) {
@@ -90,6 +122,7 @@ public class TimerActivity extends ActionBarActivity {
 			alarmMp.stop();
 			alarmMp = null;
 		}
+		alarmRinging = false;
 		stopAlarmButton.setVisibility(View.INVISIBLE);
 	}
 }

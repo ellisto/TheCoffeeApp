@@ -35,6 +35,10 @@ public class MainActivity extends ActionBarActivity {
 	}
 
 	public void startTimer(View view) {
+		// start timer service
+		Intent serviceIntent = new Intent(this, TimerService.class);
+		startService(serviceIntent);
+
 		// start timer activity
 		Intent intent = new Intent(this, TimerActivity.class);
 		startActivity(intent);

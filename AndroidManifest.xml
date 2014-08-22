@@ -26,6 +26,9 @@
             android:name=".TimerActivity"
             android:label="@string/title_activity_timer" >
         </activity>
+        <service
+            android:name=".TimerService"
+            android:exported="false"/>
     </application>
 
 </manifest>
